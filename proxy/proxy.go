@@ -181,6 +181,10 @@ func (p *proxy) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 				accessLog.StatusCode = rsp.StatusCode
 			}
 
+			if rsp != nil {
+				accessLog.ResponseHeader = rsp.Header
+			}
+
 			if p.traceKey != "" && request.Header.Get(router_http.VcapTraceHeader) == p.traceKey {
 				setTraceHeaders(responseWriter, p.ip, endpoint.CanonicalAddr())
 			}

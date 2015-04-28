@@ -103,6 +103,9 @@ index: 1
 go_max_procs: 2
 trace_key: "foo"
 access_log: "/tmp/access_log"
+log_headers:
+- request_id
+- hop_id
 ssl_port: 4443
 enable_ssl: true
 `)
@@ -114,6 +117,7 @@ enable_ssl: true
 			Ω(config.GoMaxProcs).To(Equal(2))
 			Ω(config.TraceKey).To(Equal("foo"))
 			Ω(config.AccessLog).To(Equal("/tmp/access_log"))
+			Ω(config.LogHeaders).To(ConsistOf("request_id", "hop_id"))
 			Ω(config.EnableSSL).To(Equal(true))
 			Ω(config.SSLPort).To(Equal(uint16(4443)))
 		})

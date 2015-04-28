@@ -11,17 +11,26 @@ import (
 )
 
 type AccessLogRecord struct {
-	Request       *http.Request
-	StatusCode    int
-	RouteEndpoint *route.Endpoint
-	StartedAt     time.Time
-	FirstByteAt   time.Time
-	FinishedAt    time.Time
-	BodyBytesSent int64
+	Request       		*http.Request
+	StatusCode    		int
+	RouteEndpoint 		*route.Endpoint
+	StartedAt     		time.Time
+	FirstByteAt   		time.Time
+	FinishedAt    		time.Time
+	BodyBytesSent 		int64
+	ResponseHeader		http.Header
 }
 
 func (r *AccessLogRecord) FormatStartedAt() string {
 	return r.StartedAt.Format("02/01/2006:15:04:05 -0700")
+}
+
+func (r *AccessLogRecord) FormatResponseHeader(k string) (v string) {
+	v = r.ResponseHeader.Get(k)
+	if v == "" {
+		v = "-"
+	}
+	return
 }
 
 func (r *AccessLogRecord) FormatRequestHeader(k string) (v string) {
@@ -36,7 +45,7 @@ func (r *AccessLogRecord) ResponseTime() float64 {
 	return float64(r.FinishedAt.UnixNano()-r.StartedAt.UnixNano()) / float64(time.Second)
 }
 
-func (r *AccessLogRecord) makeRecord() *bytes.Buffer {
+func (r *AccessLogRecord) makeRecord(logHeaders *[]string) *bytes.Buffer {
 	b := &bytes.Buffer{}
 	fmt.Fprintf(b, `%s - `, r.Request.Host)
 	fmt.Fprintf(b, `[%s] `, r.FormatStartedAt())
@@ -55,6 +64,10 @@ func (r *AccessLogRecord) makeRecord() *bytes.Buffer {
 	fmt.Fprintf(b, `x_forwarded_for:"%s" `, r.FormatRequestHeader("X-Forwarded-For"))
 	fmt.Fprintf(b, `vcap_request_id:%s `, r.FormatRequestHeader("X-Vcap-Request-Id"))
 
+	for _,header := range *logHeaders {
+		fmt.Fprintf(b, `%s:"%s" `, header, r.FormatResponseHeader(header))
+	}
+
 	if r.ResponseTime() < 0 {
 		fmt.Fprintf(b, "response_time:MissingFinishedAt ")
 	} else {
@@ -71,8 +84,8 @@ func (r *AccessLogRecord) makeRecord() *bytes.Buffer {
 	return b
 }
 
-func (r *AccessLogRecord) WriteTo(w io.Writer) (int64, error) {
-	recordBuffer := r.makeRecord()
+func (r *AccessLogRecord) WriteTo(w io.Writer, logHeaders *[]string) (int64, error) {
+	recordBuffer := r.makeRecord(logHeaders)
 	return recordBuffer.WriteTo(w)
 }
 
@@ -84,11 +97,11 @@ func (r *AccessLogRecord) ApplicationId() string {
 	return r.RouteEndpoint.ApplicationId
 }
 
-func (r *AccessLogRecord) LogMessage() string {
+func (r *AccessLogRecord) LogMessage(logHeaders *[]string) string {
 	if r.ApplicationId() == "" {
 		return ""
 	}
 
-	recordBuffer := r.makeRecord()
+	recordBuffer := r.makeRecord(logHeaders)
 	return recordBuffer.String()
 }

@@ -92,6 +92,48 @@ var _ = Describe("Proxy", func() {
 		Ω(string(payload)).To(MatchRegexp(".*200.*\n"))
 	})
 
+	Context("custom log headers", func() {
+
+		BeforeEach(func() {
+			logHeaders = []string{"Foo", "Bar"}
+		})
+
+		It("Logs a request with custom response headers", func() {
+			ln := registerHandler(r, "test", func(x *test_util.HttpConn) {
+				x.CheckLine("GET / HTTP/1.1")
+
+				x.WriteLines([]string{
+					"HTTP/1.1 200 OK",
+					"Content-Length: 0",
+					"Foo: Bar",
+				})
+
+			})
+			defer ln.Close()
+
+			x := dialProxy(proxyServer)
+
+			x.WriteLines([]string{
+				"GET / HTTP/1.0",
+				"Host: test",
+			})
+
+			x.CheckLine("HTTP/1.0 200 OK")
+
+			var payload []byte
+			Eventually(func() int {
+				accessLogFile.Read(&payload)
+				return len(payload)
+			}).ShouldNot(BeZero())
+			Ω(string(payload)).To(MatchRegexp("^test.*\n"))
+			//make sure the record includes all the data
+			//since the building of the log record happens throughout the life of the request
+			Ω(string(payload)).To(MatchRegexp(".*200.*\n"))
+			Ω(string(payload)).To(MatchRegexp(".*Foo:.*\n"))
+			Ω(string(payload)).To(MatchRegexp(".*Bar:\"-\".*\n"))
+		})
+	})
+
 	It("Logs a request when it exits early", func() {
 		x := dialProxy(proxyServer)
 

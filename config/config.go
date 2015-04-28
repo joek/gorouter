@@ -75,6 +75,7 @@ type Config struct {
 	GoMaxProcs     int    `yaml:"go_max_procs,omitempty"`
 	TraceKey       string `yaml:"trace_key"`
 	AccessLog      string `yaml:"access_log"`
+	LogHeaders		 []string `yaml:"log_headers"`
 	DebugAddr      string `yaml:"debug_addr"`
 	EnableSSL      bool   `yaml:"enable_ssl"`
 	SSLPort        uint16 `yaml:"ssl_port"`

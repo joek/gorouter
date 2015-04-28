@@ -12,14 +12,16 @@ type FileAndLoggregatorAccessLogger struct {
 	channel                 chan AccessLogRecord
 	stopCh                  chan struct{}
 	writer                  io.Writer
+	logHeaders							*[]string
 }
 
-func NewFileAndLoggregatorAccessLogger(f io.Writer, dropsondeSourceInstance string) *FileAndLoggregatorAccessLogger {
+func NewFileAndLoggregatorAccessLogger(f io.Writer, dropsondeSourceInstance string, logHeaders *[]string) *FileAndLoggregatorAccessLogger {
 	a := &FileAndLoggregatorAccessLogger{
 		dropsondeSourceInstance: dropsondeSourceInstance,
 		writer:                  f,
 		channel:                 make(chan AccessLogRecord, 128),
 		stopCh:                  make(chan struct{}),
+		logHeaders:							 logHeaders,
 	}
 
 	return a
@@ -30,11 +32,11 @@ func (x *FileAndLoggregatorAccessLogger) Run() {
 		select {
 		case record := <-x.channel:
 			if x.writer != nil {
-				record.WriteTo(x.writer)
+				record.WriteTo(x.writer, x.logHeaders)
 			}
 
 			if x.dropsondeSourceInstance != "" && record.ApplicationId() != "" {
-				logs.SendAppLog(record.ApplicationId(), record.LogMessage(), "RTR", x.dropsondeSourceInstance)
+				logs.SendAppLog(record.ApplicationId(), record.LogMessage(x.logHeaders), "RTR", x.dropsondeSourceInstance)
 			}
 		case <-x.stopCh:
 			return

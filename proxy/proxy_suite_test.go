@@ -27,6 +27,7 @@ var (
 	proxyServer   net.Listener
 	accessLog     access_log.AccessLogger
 	accessLogFile *test_util.FakeFile
+	logHeaders		[]string
 )
 
 func TestProxy(t *testing.T) {
@@ -48,7 +49,8 @@ var _ = JustBeforeEach(func() {
 	dropsonde.InitializeWithEmitter(fakeEmitter)
 
 	accessLogFile = new(test_util.FakeFile)
-	accessLog = access_log.NewFileAndLoggregatorAccessLogger(accessLogFile, "")
+	logHeadersFields := logHeaders
+	accessLog = access_log.NewFileAndLoggregatorAccessLogger(accessLogFile, "", &logHeadersFields)
 	go accessLog.Run()
 
 	p = proxy.NewProxy(proxy.ProxyArgs{

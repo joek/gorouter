@@ -14,6 +14,8 @@ import (
 )
 
 var _ = Describe("AccessLogRecord", func() {
+	defaultLogHeaders := make([]string, 0)
+
 	It("Makes a record with all values", func() {
 		record := CompleteAccessLogRecord()
 
@@ -29,8 +31,7 @@ var _ = Describe("AccessLogRecord", func() {
 			"vcap_request_id:abc-123-xyz-pdq " +
 			"response_time:60.000000000 " +
 			"app_id:FakeApplicationId\n"
-
-		Expect(record.LogMessage()).To(Equal(recordString))
+		Expect(record.LogMessage(&defaultLogHeaders)).To(Equal(recordString))
 	})
 
 	It("Makes a record with values missing", func() {
@@ -64,12 +65,77 @@ var _ = Describe("AccessLogRecord", func() {
 			"response_time:MissingFinishedAt " +
 			"app_id:FakeApplicationId\n"
 
-		Expect(record.LogMessage()).To(Equal(recordString))
+		Expect(record.LogMessage(&defaultLogHeaders)).To(Equal(recordString))
 	})
 
 	It("does not create a log message when route endpoint missing", func() {
 		record := AccessLogRecord{}
-		Expect(record.LogMessage()).To(Equal(""))
+		Expect(record.LogMessage(&defaultLogHeaders)).To(Equal(""))
+	})
+
+	It("Makes a record with custom headers", func() {
+		header := http.Header{}
+		header.Set("Foo", "FOO")
+		header.Set("Bar", "BAR")
+
+		record := AccessLogRecord{
+			Request: &http.Request{
+				Host:   "FakeRequestHost",
+				Method: "FakeRequestMethod",
+				Proto:  "FakeRequestProto",
+				URL: &url.URL{
+					Opaque: "http://example.com/request",
+				},
+				RemoteAddr: "FakeRemoteAddr",
+			},
+			RouteEndpoint: &route.Endpoint{
+				ApplicationId: "FakeApplicationId",
+			},
+			StartedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			ResponseHeader:	header,
+		}
+
+		recordString := "FakeRequestHost - " +
+			"[01/01/2000:00:00:00 +0000] " +
+			"\"FakeRequestMethod http://example.com/request FakeRequestProto\" " +
+			"MissingResponseStatusCode " +
+			"0 " +
+			"\"-\" " +
+			"\"-\" " +
+			"FakeRemoteAddr " +
+			"x_forwarded_for:\"-\" " +
+			"vcap_request_id:- " +
+			"foo:\"FOO\" " +
+			"bar:\"BAR\" "+
+			"response_time:MissingFinishedAt " +
+			"app_id:FakeApplicationId\n"
+
+		logHeaders := []string{"foo", "bar"}
+		Expect(record.LogMessage(&logHeaders)).To(Equal(recordString))
+	})
+
+
+	It("creates a log message if headers are missing", func() {
+		record := CompleteAccessLogRecord()
+
+		recordString := "FakeRequestHost - " +
+			"[01/01/2000:00:00:00 +0000] " +
+			"\"FakeRequestMethod http://example.com/request FakeRequestProto\" " +
+			"200 " +
+			"23 " +
+			"\"FakeReferer\" " +
+			"\"FakeUserAgent\" " +
+			"FakeRemoteAddr " +
+			"x_forwarded_for:\"FakeProxy1, FakeProxy2\" " +
+			"vcap_request_id:abc-123-xyz-pdq " +
+			"foo:\"-\" " +
+			"bar:\"-\" " +
+			"response_time:60.000000000 " +
+			"app_id:FakeApplicationId\n"
+
+		logHeaders := []string{"foo", "bar"}
+
+		Expect(record.LogMessage(&logHeaders)).To(Equal(recordString))
 	})
 
 })

@@ -22,8 +22,8 @@ var _ = Describe("AccessLog", func() {
 
 			fakeLogSender := fake.NewFakeLogSender()
 			logs.Initialize(fakeLogSender)
-
-			accessLogger := NewFileAndLoggregatorAccessLogger(nil, "42")
+			logHeaders := make([]string, 1)
+			accessLogger := NewFileAndLoggregatorAccessLogger(nil, "42", &logHeaders)
 			go accessLogger.Run()
 
 			accessLogger.Log(*CreateAccessLogRecord())
@@ -42,8 +42,8 @@ var _ = Describe("AccessLog", func() {
 
 			fakeLogSender := fake.NewFakeLogSender()
 			logs.Initialize(fakeLogSender)
-
-			accessLogger := NewFileAndLoggregatorAccessLogger(nil, "43")
+			logHeaders := make([]string, 1)
+			accessLogger := NewFileAndLoggregatorAccessLogger(nil, "43", &logHeaders)
 
 			routeEndpoint := route.NewEndpoint("", "127.0.0.1", 4567, "", nil, -1)
 
@@ -62,8 +62,8 @@ var _ = Describe("AccessLog", func() {
 	Context("with a file", func() {
 		It("writes to the log file", func() {
 			var fakeFile = new(test_util.FakeFile)
-
-			accessLogger := NewFileAndLoggregatorAccessLogger(fakeFile, "")
+			logHeaders := make([]string, 1)
+			accessLogger := NewFileAndLoggregatorAccessLogger(fakeFile, "", &logHeaders)
 			go accessLogger.Run()
 			accessLogger.Log(*CreateAccessLogRecord())
 
@@ -82,9 +82,11 @@ var _ = Describe("AccessLog", func() {
 		r := CreateAccessLogRecord()
 		w := nullWriter{}
 
+		logHeaders := make([]string, 1)
+
 		b.Time("writeTime", func() {
 			for i := 0; i < 100; i++ {
-				r.WriteTo(w)
+				r.WriteTo(w, &logHeaders)
 			}
 		})
 	}, 100)
