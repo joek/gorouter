@@ -12,7 +12,7 @@ type FileAndLoggregatorAccessLogger struct {
 	channel                 chan AccessLogRecord
 	stopCh                  chan struct{}
 	writer                  io.Writer
-	logHeaders							*[]string
+	logHeaders              *[]string
 }
 
 func NewFileAndLoggregatorAccessLogger(f io.Writer, dropsondeSourceInstance string, logHeaders *[]string) *FileAndLoggregatorAccessLogger {
@@ -21,7 +21,7 @@ func NewFileAndLoggregatorAccessLogger(f io.Writer, dropsondeSourceInstance stri
 		writer:                  f,
 		channel:                 make(chan AccessLogRecord, 128),
 		stopCh:                  make(chan struct{}),
-		logHeaders:							 logHeaders,
+		logHeaders:              logHeaders,
 	}
 
 	return a

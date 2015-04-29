@@ -91,8 +91,8 @@ var _ = Describe("AccessLogRecord", func() {
 			RouteEndpoint: &route.Endpoint{
 				ApplicationId: "FakeApplicationId",
 			},
-			StartedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-			ResponseHeader:	header,
+			StartedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			ResponseHeader: header,
 		}
 
 		recordString := "FakeRequestHost - " +
@@ -106,14 +106,13 @@ var _ = Describe("AccessLogRecord", func() {
 			"x_forwarded_for:\"-\" " +
 			"vcap_request_id:- " +
 			"foo:\"FOO\" " +
-			"bar:\"BAR\" "+
+			"bar:\"BAR\" " +
 			"response_time:MissingFinishedAt " +
 			"app_id:FakeApplicationId\n"
 
 		logHeaders := []string{"foo", "bar"}
 		Expect(record.LogMessage(&logHeaders)).To(Equal(recordString))
 	})
-
 
 	It("creates a log message if headers are missing", func() {
 		record := CompleteAccessLogRecord()

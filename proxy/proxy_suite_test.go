@@ -27,7 +27,7 @@ var (
 	proxyServer   net.Listener
 	accessLog     access_log.AccessLogger
 	accessLogFile *test_util.FakeFile
-	logHeaders		[]string
+	logHeaders    []string
 )
 
 func TestProxy(t *testing.T) {
