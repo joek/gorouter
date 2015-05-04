@@ -81,6 +81,7 @@ func NewProxy(args ProxyArgs) Proxy {
 				return conn, err
 			},
 			DisableKeepAlives: true,
+			DisableCompression: true,
 		},
 		secureCookies: args.SecureCookies,
 	}
@@ -99,6 +100,20 @@ func hostWithoutPort(req *http.Request) string {
 	return host
 }
 
+func ChopUpPath(str string) []string {
+	// Remove :<port>
+	ln := len(str)
+	if str[ln-1:ln] == "/" {
+		str = str[0 : ln-1]
+	}
+	ret := strings.Split(str, "/")
+
+	for i := 1; i < len(ret); i++ {
+		ret[i] = ret[i-1] + "/" + ret[i]
+	}
+	return ret
+}
+
 func (p *proxy) getStickySession(request *http.Request) string {
 	// Try choosing a backend using sticky session
 	if _, err := request.Cookie(StickyCookieKey); err == nil {
@@ -110,9 +125,15 @@ func (p *proxy) getStickySession(request *http.Request) string {
 }
 
 func (p *proxy) lookup(request *http.Request) *route.Pool {
-	uri := route.Uri(hostWithoutPort(request))
-	// Choose backend using host alone
-	return p.registry.Lookup(uri)
+	chopt := ChopUpPath(request.RequestURI)
+	for i := len(chopt) - 1; i >= 0; i-- {
+		uri := route.Uri(hostWithoutPort(request) + chopt[i])
+		ret := p.registry.Lookup(uri)
+		if ret != nil && !ret.IsEmpty() {
+			return ret
+		}
+	}
+	return nil
 }
 
 func (p *proxy) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
